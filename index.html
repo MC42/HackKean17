@@ -1,11 +1,29 @@
 <head>
 <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet"> 
 <script type="text/javascript">
-function displayunicode(e){
+function toggleClass(element, className) {
+  if (!element || !className) { return; }
+  var classString = element.className, nameIndex = classString.indexOf(className);
+  if (nameIndex == -1) {
+    classString += (classString.length) ? ' ' + className : className;
+  } else {
+    classString = classString.replace(' '+className, '');
+    classString = classString.replace(className, '');
+  }
+  element.className = classString;
+}
+
+function displayunicode(e) {
 	var unicode=e.keyCode? e.keyCode : e.charCode
 	if (unicode == 13) {
-		yourMsg = document.getElementById("exploderBox").value; //This just gets the 		
-		alert("\"" + yourMsg + "\" has been sent!");
+		yourMsg = document.getElementById("exploderBox").value; //This just gets the 	
+		if (yourMsg != "") {	
+		console.log("\"" + yourMsg + "\" has been sent!");
+		document.getElementById("exploderBox").style.display="none";
+		toggleClass(document.getElementById("bubble"),('bubblePop'));
+		document.getElementById("bubble").innerHTML = "<h3 id=\"bubbleInnerText\">It was a dark and stormy night.</h3>";
+		document.getElementById("bubble").style.backgroundcolor ="rebeccapurple";
+		}
 	}
 }
 
@@ -14,23 +32,74 @@ function displayunicode(e){
 
 <body>
 <div class="background">
-<div class="testone" style="">
-<input id="exploderBox" type="text" onkeypress="displayunicode(event);" class="exploderBox" placeholder="    Enter your thought to be destroyed.">
-</div>
+	<div class="exploderContainer" id="exploderContainer">
+		<input id="exploderBox" type="text" onkeypress="displayunicode(event);" class="exploderBox" placeholder="    Enter your thought to be destroyed.">
+	</div>
+	<div style="" id ="bubble" class="bubble circle">
+
+	</div>
 </div>
 </body>
 
 <style>
+.bubbleInnerText {
+
+}
+
+@keyframes fadein {
+    from {
+        opacity:0;
+    }
+    to {
+        opacity:1;
+    }
+}
+@-moz-keyframes fadein { /* Firefox */
+    from {
+        opacity:0;
+    }
+    to {
+        opacity:1;
+    }
+}
+@-webkit-keyframes fadein { /* Safari and Chrome */
+    from {
+        opacity:0;
+    }
+    to {
+        opacity:1;
+    }
+}
+@-o-keyframes fadein { /* Opera */
+    from {
+        opacity:0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@-webkit-keyframes pop-in {
+0% { opacity: 0; -webkit-transform: scale(0.5); }
+100% { opacity: 1; -webkit-transform: scale(1); }
+}
+@-moz-keyframes pop-in {
+0% { opacity: 0; -moz-transform: scale(0.5); }
+100% { opacity: 1; -moz-transform: scale(1); }
+}
+@keyframes pop-in {
+0% { opacity: 0; transform: scale(0.5); }
+100% { opacity: 1; transform: scale(1); }
+}
+
 .background{
 width: auto;
 height: 100%;
-/*background: -webkit-linear-gradient(skyblue,white);*/
 background:rgba(177,224,240);
 
 }
 
-/*.inputBubble{*/
-div .testone{
+div .exploderContainer{
 	position:absolute;
 	color:#fff;
 	top:50%;
@@ -43,6 +112,16 @@ div .testone{
 	
 }
 
+div .bubble{
+position:absolute;
+	color:#fff;
+	top:50%;
+	left:50%;
+	-ms-transform: translateX(-50%) translateY(-50%);
+	-webkit-transform: translate(-50%,-50%);
+	transform: translate(-50%,-50%);
+}
+
 .exploderBox {
 	width: 100%;
 	height:100%;
@@ -52,7 +131,14 @@ div .testone{
 	left: 0;
 	right: 0;
 	margin: auto;
-font-family: 'Lato';sans-serif;font-size: 18pt;
+	font-family: 'Lato';sans-serif;font-size: 18pt;
+	animation: fadein 1s;
+	-moz-animation: fadein 1s; /* Firefox */
+	-webkit-animation: fadein 1s; /
+}
+
+.bubblePop {
+	animation:fadein 1s;
 }
 
 
@@ -64,9 +150,17 @@ input.exploderBox:-moz-placeholder { font-family: 'Lato';sans-serif;font-size: 1
 width: 100%;
 }
 
+
 body {
 	margin: 0;
 	padding: 0;
 	font-family: 'Lato';sans-serif;
+}
+
+.circle {
+	border-radius: 50%;
+	width: 200px;
+	height: 200px; 
+	/* width and height can be anything, as long as they're equal */
 }
 </style>
