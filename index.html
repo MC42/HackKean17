@@ -20,9 +20,7 @@ function displayunicode(e) {
 		if (yourMsg != "") {	
 		console.log("\"" + yourMsg + "\" has been sent!");
 		document.getElementById("exploderBox").style.display="none";
-		toggleClass(document.getElementById("bubble"),('bubblePop'));
-		document.getElementById("bubble").innerHTML = "<h3 id=\"bubbleInnerText\">It was a dark and stormy night.</h3>";
-		document.getElementById("bubble").style.backgroundcolor ="rebeccapurple";
+		window.location.href = "http://example.com";
 		}
 	}
 }
@@ -35,15 +33,13 @@ function displayunicode(e) {
 	<div class="exploderContainer" id="exploderContainer">
 		<input id="exploderBox" type="text" onkeypress="displayunicode(event);" class="exploderBox" placeholder="    Enter your thought to be destroyed.">
 	</div>
-	<div style="" id ="bubble" class="bubble circle">
-
-	</div>
 </div>
 </body>
 
 <style>
-.bubbleInnerText {
 
+.circleThisShit {
+border-radius:50%;
 }
 
 @keyframes fadein {
@@ -95,7 +91,7 @@ function displayunicode(e) {
 .background{
 width: auto;
 height: 100%;
-background:rgba(177,224,240);
+background:rgba(177,224,240,1);
 
 }
 
@@ -110,16 +106,6 @@ div .exploderContainer{
 	width:67%;
 	height:13%;
 	
-}
-
-div .bubble{
-position:absolute;
-	color:#fff;
-	top:50%;
-	left:50%;
-	-ms-transform: translateX(-50%) translateY(-50%);
-	-webkit-transform: translate(-50%,-50%);
-	transform: translate(-50%,-50%);
 }
 
 .exploderBox {
