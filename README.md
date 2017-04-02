@@ -1,8 +1,2 @@
-# HackKean17
-
-- Social media based
-- Idea 'bubble'
-- idea fades after pop
-
-## Made By
-- Some nerds
+# particleprescout.py
+A semi-simple program to get the match codes of a team's best and worst matches of an FRC team in the season thus far. Designed for STEAMworks.
