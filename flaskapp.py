@@ -63,11 +63,16 @@ def tbaIncrement():
 	global tbaRequests
 	tbaRequests+=1
 
+def tbaIncGet():
+	global tbaRequests
+	return str(tbaRequests)
+
 def getEvent(teams, eventCode):
 	tbaIncrement()
 	finalOut ="<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans|Righteous\" rel=\"stylesheet\"><style>table{font-size:14px;}th{text-align:left;}	.center{margin: auto;    border: 3px solid #ff6600;    padding: 10px;border-radius:10px;}body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}</style>"
 	finalOut += "<h1 style=\"text-align:center\">" + eventCode.upper() + " Event</h1>"
 	finalOut += "<table class=\"center\" style=\"width:100%;\">"
+	#Generates The Header for the Event
 	finalOut+="<tr><th>Team No.</th>"
 	for num in range(bestWorst):
 		finalOut+="<th>#" + str(num+1) + " Best Match</th>"
@@ -75,6 +80,8 @@ def getEvent(teams, eventCode):
 		finalOut+="<th>#" + str(num+1) + " Worst Match</th>"
 
 	finalOut+="</tr>"
+
+	#Geneates the data for each team at the event.
 	for i in teams:	
 		tbaIncrement()
 		myRequest = (baseURL + 'team/frc'+ str(i) + '/2017/events')
@@ -85,8 +92,7 @@ def getEvent(teams, eventCode):
 			getTeamMatchesAtEvent(i, str(thing['key']))
 		cursor.execute('SELECT * FROM MATCHES ORDER BY SCORE DESC LIMIT ?;', (bestWorst,))
 		bestMatches = cursor.fetchall()	
-		finalOut+="<tr>"
-		finalOut+="<td><a href=\"" + tbaTeam(i) + "\">" + str(i) + "</td>"
+		finalOut+="<tr><td><a href=\"" + tbaTeam(i) + "\">" + str(i) + "</td>"
 		for gMatch in bestMatches:
 			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0]) + "\">" + gMatch[0] + "</td>")
 		cursor.execute('SELECT * FROM MATCHES ORDER BY SCORE ASC LIMIT ?;', (bestWorst,))
@@ -100,6 +106,7 @@ def getEvent(teams, eventCode):
 		cursor.execute("DELETE FROM MATCHES;")  #CLEANUP FOR NEXT TEAM
 	finalOut+="</table>"
 
+	#Archives Data to File
 	f = open(("./export/" + eventCode + ".html"), "w+")
 	f.write(finalOut)
 	print("Updating " + eventCode.upper() + " via non-static view.")
@@ -107,9 +114,7 @@ def getEvent(teams, eventCode):
 	return finalOut
 
 def frontPage():
-	# <a href="https://www.w3schools.com">Visit W3Schools</a> 
-	finalOut = "<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans\" rel=\"stylesheet\"><link href=\"https://fonts.googleapis.com/css?family=Righteous\" rel=\"stylesheet\"> <style>body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}</style>"	
-	finalOut += "<style>.center{margin: auto;width: 60%;border:5px solid #ff6600;padding:10px;border-radius:10px;}</style>"
+	finalOut = "<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans\" rel=\"stylesheet\"><link href=\"https://fonts.googleapis.com/css?family=Righteous\" rel=\"stylesheet\"> <style>body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}.center{margin: auto;width: 60%;border:5px solid #ff6600;padding:10px;border-radius:10px;}</style>"
 	myRequest = (baseURL + "events/"+ str(year))
 	response = requests.get(myRequest, headers=header)
 	jsonified = response.json()
@@ -120,8 +125,14 @@ def frontPage():
 	for t in jsonified:
 		finalOut+="<tr><td>"+ str(t['week'])+ "</td><td><a href=\"events/" + t['key'] + "\">" + t['short_name'] + " (" + t['event_code'].upper() + ")</a></td><td>" + t['location'] + "</td></tr>"
 	finalOut+="</table>"
-	finalOut+="<h6 style=\"text-align:center\">40k+ Requests (And Counting!)</h6></div>"
+	finalOut+="<h6 style=\"text-align:center\">" + tbaIncGet() + " Requests to TBA (And Counting!)</h6></div>"
 	return finalOut
+
+def file_len(fname):
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
 
 def savePage():
 	myRequest = (baseURL + "events/"+ str(year))
@@ -134,12 +145,22 @@ def savePage():
 			print("Updating " + t['key'].upper() + " via cache view.")
 			f.close()
 
+def statsTest():
+	finalOut = "<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans\" rel=\"stylesheet\"><link href=\"https://fonts.googleapis.com/css?family=Righteous\" rel=\"stylesheet\"> <style>body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}.center{margin: auto;width: 60%;border:5px solid #ff6600;padding:10px;border-radius:10px;}</style>"
+	finalOut+="<h4>" + tbaIncGet()  +" requests to The Blue Alliance and counting!</h4>"
+	finalOut+="<h4>" + str(file_len("./flaskapp.py")) + " lines of code in this project.</h4>"
+
+	return finalOut
+	
+
 app = Flask(__name__)
 
+#Event is LIVE
 @app.route('/event/<event>')
 def scoutatevent(event):
     return getEvent(getTeamsAtEvent(event),event)
 
+#Events is STATIC
 @app.route('/events/<event>')
 def scoutatevents(event):
     f = open(("./export/" + event + ".html"), "r")
@@ -147,20 +168,20 @@ def scoutatevents(event):
     f.close()
     return t
 
+@app.route('/stats')
+def simplestats():
+    return statsTest()
+
 
 @app.route('/')
 def getEvents():
     return frontPage()
 
+#SAVE EVERYTHING
 @app.route('/save')
 def saveEvents():
     savePage()
     return "Saved!"
 
-
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080, debug=True)
-
-
-
-
