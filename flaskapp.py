@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python2
 from flask import Flask, render_template
 import requests
 import sqlite3
