@@ -4,11 +4,14 @@ import requests
 import sqlite3
 import sys
 import datetime, time
-import os.path
+import os.path, locale	
 
 #Keep track of how many requests are made.
 global tbaRequests
 tbaRequests = 0
+tbaFile = open(("tbaRequests.txt"), "r")
+tbaRequests = int(tbaFile.read())
+tbaFile.close()
 
 #Set current year for thing.
 year = str(datetime.datetime.today().year)
@@ -59,11 +62,14 @@ def getTeamMatchesAtEvent(i, key):
 
 def tbaIncrement():
 	global tbaRequests
+	tbaFile = open(("tbaRequests.txt"), "w+")
+	tbaFile.write(str(tbaRequests))
+	tbaFile.close()
 	tbaRequests+=1
 
 def tbaIncGet():
 	global tbaRequests
-	return str(tbaRequests)
+	return format(tbaRequests,',d')
 
 def getEvent(teams, eventCode):
 	global conn
@@ -75,7 +81,7 @@ def getEvent(teams, eventCode):
 	tbaIncrement()
 	finalOut ="<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans|Righteous\" rel=\"stylesheet\"><style>table{font-size:14px;}th{text-align:left;}	.center{margin: auto;    border: 3px solid #ff6600;    padding: 10px;border-radius:10px;}body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}</style>"
 	finalOut += "<h1 style=\"text-align:center\">" + eventCode.upper() + " Event</h1>"
-	finalOut += "<table class=\"center\" style=\"width:100%;\">"
+	finalOut += "<table class=\"center\" style=\"width:auto%;\">"
 
 	#Generates The Header for the Event
 	finalOut+="<tr><th>Team No.</th>"
@@ -184,6 +190,10 @@ def statsTest():
 
 app = Flask(__name__)
 
+@app.route('/')
+def getEvents():
+    return frontPage()
+
 #Event is LIVE
 @app.route('/event/<event>')
 def scoutatevent(event):
@@ -197,14 +207,10 @@ def scoutatevents(event):
     f.close()
     return t
 
+#Stats Page
 @app.route('/stats')
 def simplestats():
     return statsTest()
-
-
-@app.route('/')
-def getEvents():
-    return frontPage()
 
 #SAVE EVERYTHING
 @app.route('/admin/save/', methods=['POST'])
@@ -222,4 +228,3 @@ def page_not_found(e):
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080, debug=True, threaded=True)
-
