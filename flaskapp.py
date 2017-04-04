@@ -9,9 +9,8 @@ import os.path, locale
 #Keep track of how many requests are made.
 global tbaRequests
 tbaRequests = 0
-tbaFile = open(("tbaRequests.txt"), "r")
-tbaRequests = int(tbaFile.read())
-tbaFile.close()
+with open(("tbaRequests.txt"), "r") as f:
+	tbaRequests = int(f.read())
 
 #Set current year for thing.
 year = str(datetime.datetime.today().year)
@@ -76,12 +75,11 @@ def getEvent(teams, eventCode):
 	conn = sqlite3.connect(':memory:',detect_types=sqlite3.PARSE_DECLTYPES| sqlite3.PARSE_COLNAMES, check_same_thread=False)
 	global cursor
 	cursor = conn.cursor()
-
+	finalOut=""
 	cursor.execute('CREATE TABLE `MATCHES` (	`KEY`	TEXT,	`SCORE`	INTEGER);')
 	tbaIncrement()
-	finalOut ="<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans|Righteous\" rel=\"stylesheet\"><style>table{font-size:14px;}th{text-align:left;}	.center{margin: auto;    border: 3px solid #ff6600;    padding: 10px;border-radius:10px;}body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}</style>"
 	finalOut += "<h1 style=\"text-align:center\">" + eventCode.upper() + " Event</h1>"
-	finalOut += "<table class=\"center\" style=\"width:auto%;\">"
+	finalOut += "<table class=\"center\" style=\"width:auto;\">"
 
 	#Generates The Header for the Event
 	finalOut+="<tr><th>Team No.</th>"
@@ -126,13 +124,12 @@ def getEvent(teams, eventCode):
 	return finalOut
 
 def frontPage():
-	finalOut = "<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans\" rel=\"stylesheet\"><link href=\"https://fonts.googleapis.com/css?family=Righteous\" rel=\"stylesheet\"> <style>body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}.center{margin: auto;width: 60%;border:5px solid #ff6600;padding:10px;border-radius:10px;}</style>"
 	myRequest = (baseURL + "events/"+ str(year))
 	response = requests.get(myRequest, headers=header)
 	jsonified = response.json()
 	jsonified.sort(key=lambda r: r['end_date'])
-	finalOut+="<h1 style=\"text-align:center\">Particle Prescouter</h1><h3 style=\"text-align:center\">FIRST Robotics Competition</h3>"
-	finalOut+="<div class=\"center\"><table style=\"width:100%;\">"
+	finalOut="<h1 style=\"text-align:center\">Particle Prescouter</h1><h3 style=\"text-align:center\">FIRST Robotics Competition</h3>"
+	finalOut+="<table class=\"center\" style=\"width:auto;\">"
 	finalOut+="<tr><th>Week No.</th><th>Event Short Name</th><th>Event Location</th></tr>"
 	for t in jsonified:
 		#Week off-by-one Corrector
@@ -148,12 +145,11 @@ def frontPage():
 			t['week'] = "Offseason"
 		#Champs Codes
 		if( t['event_code'] == "cmptx" or t['event_code'] == "cmpmo"):
-			print(t['event_code'])
 			t['week'] = "Champs"
 
 		finalOut+="<tr><td>"+ str(t['week'])+ "</td><td><a href=\"events/" + t['key'] + "\">" + t['short_name'] + " (" + t['event_code'].upper() + ")</a></td><td>" + t['location'] + "</td></tr>"
 	finalOut+="</table>"
-	finalOut+="<h6 style=\"text-align:center\">" + tbaIncGet() + " Requests to TBA (And Counting!)</h6></div>"
+	finalOut+="<h6 style=\"text-align:center\">" + tbaIncGet() + " Requests to TBA (And Counting!)</h6>"
 	return finalOut
 
 def file_len(fname):
@@ -164,24 +160,27 @@ def file_len(fname):
 
 def savePage():
 	print("Saving entire damn site to static!")
+	print("Started at", str(datetime.datetime.now()))
 	myRequest = (baseURL + "events/"+ str(year))
 	response = requests.get(myRequest, headers=header)
 	jsonified = response.json()
-	for t in jsonified:
+	for r,t in enumerate(jsonified):
 		if not(os.path.isfile(str("export/" + t['key'] + ".html"))):
 			f = open(("./export/" + t['key'] + ".html"), "w+")
-			f.write(getEvent(getTeamsAtEvent(t['key']), t['key']))
+			f.write(scoutatevent(t['key']))
 			print("Updating " + t['key'].upper() + " via cache view.")
+			print(str(r) +"/"+  str(len(jsonified)))
 			f.close()
 		elif (open("./export/" + t['key'] + ".html").read() == ""):
 			f = open(("./export/" + t['key'] + ".html"), "w+")
-			f.write(getEvent(getTeamsAtEvent(t['key']), t['key']))
+			f.write(scoutatevent(t['key']))
 			print("Updating " + t['key'].upper() + " via cache view.")
+			print(str(r) +"/"+  str(len(jsonified)))
 			f.close()
+	print("Finished @",str(datetime.datetime.now()))
 
 def statsTest():
-	finalOut = "<link href=\"https://fonts.googleapis.com/css?family=Droid+Sans\" rel=\"stylesheet\"><link href=\"https://fonts.googleapis.com/css?family=Righteous\" rel=\"stylesheet\"> <style>body{font-family:'Droid Sans';}h1,h3{font-family:'Righteous';line-height: 70%;}.center{margin: auto;width: 60%;border:5px solid #ff6600;padding:10px;border-radius:10px;}</style>"
-	finalOut+="<h4>" + tbaIncGet()  +" requests to The Blue Alliance and counting!</h4>"
+	finalOut="<h4>" + tbaIncGet()  +" requests to The Blue Alliance and counting!</h4>"
 	finalOut+="<h4>" + str(file_len("./flaskapp.py")) + " lines of code in this project.</h4>"
 	finalOut+="<form action=\"admin/save/\" method=\"post\"><button name=\"foo\" value=\"upvote\">Save Entire Site to Static</button></form>"
 
@@ -192,25 +191,23 @@ app = Flask(__name__)
 
 @app.route('/')
 def getEvents():
-    return frontPage()
+    return render_template("base.html", bodyhtml = frontPage())
 
 #Event is LIVE
 @app.route('/event/<event>')
 def scoutatevent(event):
-    return getEvent(getTeamsAtEvent(event),event)
+    return render_template("base.html", bodyhtml = getEvent(getTeamsAtEvent(event),event))
 
 #Events is STATIC
 @app.route('/events/<event>')
 def scoutatevents(event):
-    f = open(("./export/" + event + ".html"), "r")
-    t = f.read()
-    f.close()
-    return t
+    with open(("./export/" + event + ".html"), "r") as f:
+    	return f.read()
 
 #Stats Page
 @app.route('/stats')
 def simplestats():
-    return statsTest()
+    return render_template("base.html", bodyhtml=statsTest())
 
 #SAVE EVERYTHING
 @app.route('/admin/save/', methods=['POST'])
