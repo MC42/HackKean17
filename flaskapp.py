@@ -4,7 +4,10 @@ import requests
 import sqlite3
 import sys
 import datetime, time
-import os.path, locale	
+import os.path, locale
+
+#t = []
+#t.append(("bla",453))
 
 #Keep track of how many requests are made.
 global tbaRequests
@@ -18,18 +21,20 @@ year = str(datetime.datetime.today().year)
 bestWorst = 4
 
 baseURL = 'http://www.thebluealliance.com/api/v2/'
-header = {'X-TBA-App-Id': 'tjf:particleprescouter:hackkean3'} #Yay, version strings....
+header = {'X-TBA-App-Id': 'tjf:particleprescouter:hackkean3b'} #Yay, version strings....
 
 def matchLogic(match, team, key):
+	matchTest = []
 	team="frc"+str(team)
 	if match['score_breakdown']:
 		matchSeries = match['key']
 		if team in match['alliances']['red']['teams']:
 			redScoreNoFouls = (match['score_breakdown']['red']['totalPoints'] - match['score_breakdown']['red']['foulPoints'] )
-			cursor.execute("insert into MATCHES VALUES(?,?)", (matchSeries, redScoreNoFouls))
+			matchTest.append((matchSeries, redScoreNoFouls))
 		if team in match['alliances']['blue']['teams']:
 			blueScoreNoFouls = (match['score_breakdown']['blue']['totalPoints'] - match['score_breakdown']['blue']['foulPoints'] )
-			cursor.execute("insert into MATCHES VALUES(?,?)", (matchSeries, blueScoreNoFouls))
+			matchTest.append((matchSeries, blueScoreNoFouls))
+	return matchTest
 			
 def tbaMatch(match):
 	t = "https://thebluealliance.com/match/" + match
@@ -56,8 +61,12 @@ def getTeamMatchesAtEvent(i, key):
 	myRequest = (baseURL + 'team/frc'+ str(i) + '/event/' + key + '/matches')
 	response = requests.get(myRequest, headers=header)
 	events = response.json()
+
+	eventMatches = []
+
 	for match in events:
-		matchLogic(match, i, key)
+		eventMatches.append(matchLogic(match, i, key))
+	return eventMatches
 
 def tbaIncrement():
 	global tbaRequests
@@ -71,12 +80,7 @@ def tbaIncGet():
 	return format(tbaRequests,',d')
 
 def getEvent(teams, eventCode):
-	global conn
-	conn = sqlite3.connect(':memory:',detect_types=sqlite3.PARSE_DECLTYPES| sqlite3.PARSE_COLNAMES, check_same_thread=False)
-	global cursor
-	cursor = conn.cursor()
 	finalOut=""
-	cursor.execute('CREATE TABLE `MATCHES` (	`KEY`	TEXT,	`SCORE`	INTEGER);')
 	tbaIncrement()
 	finalOut += "<h1 style=\"text-align:center\">" + eventCode.upper() + " Event</h1>"
 	finalOut += "<table class=\"center\" style=\"width:auto;\">"
@@ -95,32 +99,27 @@ def getEvent(teams, eventCode):
 		myRequest = (baseURL + 'team/frc'+ str(i) + '/'+ year + '/events')
 		response = requests.get(myRequest, headers=header)
 		jsonified = response.json()
-
+		teamMatches = []
 		for thing in jsonified:
-			getTeamMatchesAtEvent(i, str(thing['key']))
-		cursor.execute('SELECT * FROM MATCHES ORDER BY SCORE DESC LIMIT ?;', (bestWorst,))
-		bestMatches = cursor.fetchall()	
+			teamMatches.extend(getTeamMatchesAtEvent(i, str(thing['key'])))
+		while [] in teamMatches:	#Strips out empty / broken matches.
+			teamMatches.remove([])
+		if teamMatches != []:		#If they're not empty.
+			teamMatches.sort(key=lambda x: x[0][1])
 		finalOut+="<tr><td><a href=\"" + tbaTeam(i) + "\">" + str(i) + "</td>"
-		for gMatch in bestMatches:
-			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0]) + "\">" + gMatch[0] + "</td>")
-		cursor.execute('SELECT * FROM MATCHES ORDER BY SCORE ASC LIMIT ?;', (bestWorst,))
-		worstMatches = cursor.fetchall()
-		for badMatch in worstMatches:
-			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0]) + "\">" + badMatch[0] + "</td>")
-		if (len(worstMatches) == 0):
+		for gMatch in teamMatches[-bestWorst:]:
+			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0][0]) + "\">" + gMatch[0][0] + "</td>")
+		for badMatch in teamMatches[:bestWorst]:
+			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0][0]) + "\">" + badMatch[0][0] + "</td>")
+		if (len(teamMatches) == 0):
 			finalOut+=("<td colspan="+  str(bestWorst*2)+ ">" + "No matches played yet, check back later." +"</td>")
 		finalOut+=("</tr>")
-	
-		cursor.execute("DELETE FROM MATCHES;")  #CLEANUP FOR NEXT TEAM
+	if teams == []:
+		finalOut+="<tr><td colspan="+  str((bestWorst*2)+1)+ ">No teams have been populated for this event.</td><tr>"
 	finalOut+="</table>"
-
-	finalOut+="<h6>Page generated at: " + str(datetime.datetime.now()) + "</h6>"
+	finalOut+="<h6 style=\"text-align:center;\">Page generated at: " + str(datetime.datetime.now()) + "</h6>"
 
 	#Archives Data to File
-	f = open(("./export/" + eventCode + ".html"), "w+")
-	f.write(finalOut)
-	print("Updating " + eventCode.upper() + " via non-static view.")
-	f.close()
 	return finalOut
 
 def frontPage():
@@ -129,7 +128,7 @@ def frontPage():
 	jsonified = response.json()
 	jsonified.sort(key=lambda r: r['end_date'])
 	finalOut="<h1 style=\"text-align:center\">Particle Prescouter</h1><h3 style=\"text-align:center\">FIRST Robotics Competition</h3>"
-	
+	finalOut+="<table class=\"center\">"
 	finalOut+="<tr><th>Week No.</th><th>Event Short Name</th><th>Event Location</th></tr>"
 	for t in jsonified:
 		#Week off-by-one Corrector
@@ -159,8 +158,7 @@ def file_len(fname):
     return i + 1
 
 def savePage():
-	print("Saving entire damn site to static!")
-	print("Started at", str(datetime.datetime.now()))
+	print("Started at "+  str(datetime.datetime.now()))
 	myRequest = (baseURL + "events/"+ str(year))
 	response = requests.get(myRequest, headers=header)
 	jsonified = response.json()
@@ -177,7 +175,7 @@ def savePage():
 			print("Updating " + t['key'].upper() + " via cache view.")
 			print(str(r) +"/"+  str(len(jsonified)))
 			f.close()
-	print("Finished @",str(datetime.datetime.now()))
+	print("Finished @ " + str(datetime.datetime.now()))
 
 def statsTest():
 	finalOut="<h4>" + tbaIncGet()  +" requests to The Blue Alliance and counting!</h4>"
@@ -196,7 +194,11 @@ def getEvents():
 #Event is LIVE
 @app.route('/event/<event>')
 def scoutatevent(event):
-    return render_template("base.html", bodyhtml = getEvent(getTeamsAtEvent(event),event))
+    holder = render_template("base.html", bodyhtml =getEvent(getTeamsAtEvent(event),event))
+    with open(("./export/" + event + ".html"), "w+") as f:
+		f.write(holder)
+    print("Updating " + event.upper() + " via non-static view.")
+    return holder
 
 #Events is STATIC
 @app.route('/events/<event>')
@@ -238,12 +240,11 @@ def cdr():
 			cursor.execute("insert into TEAMS VALUES(?,?,?)", (i['team_key'], i['point_total'], district['key']))
 
 	hold=1
-	finalOut="<table class=\"center\" style=\"width:auto;\">"
+	finalOut="<table class=\"center\" style=\"width:auto;\"><tr><th>Rank</th><th>Team No.</th><th>No. Pts.</th><th>Dist. Code</th></tr>\n"
 #t= cursor.execute("SELECT * FROM TEAMS WHERE TEAMNO = ? ORDER BY RANKPTS DESC;",(teamKey,))
 	t = cursor.execute("SELECT * FROM TEAMS ORDER BY RANKPTS DESC;")
 	for i in t:
-		if str(i[2]).upper() != "":
-			finalOut+="<tr><td>" + str(hold) + "</td><td>" + str(i[0]).upper() + "</td><td>" + str(i[1]) + "</td><td>" + str(i[2]).upper() + "</td><tr>"
+		finalOut+="<tr><td>" + str(hold) + "</td><td>" + str(i[0]).upper() + "</td><td>" + str(i[1]) + "</td><td>" + str(i[2]).upper() + "</td></tr>"
 		hold+=1
 	finalOut+="</table>"
 	localconn.commit()
