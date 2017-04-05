@@ -1,7 +1,6 @@
 #!/usr/bin/python2
 from flask import Flask, request, render_template
 import requests
-import sqlite3
 import sys
 import datetime, time
 import os.path, locale
@@ -219,16 +218,7 @@ def saveEvents():
 
 @app.route('/cdr/')
 def cdr():
-	localconn = sqlite3.connect(':memory:', detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
-	cursor = localconn.cursor()
-
-	cursor.execute('CREATE TABLE `TEAMS` (	`TEAMNO`	INTEGER,	`RANKPTS`	REAL,	`DISTRICT`	TEXT);')
-
-	fieldValues = []  # we start with blanks for the values
-
-#cursor.execute("insert into TEAMS VALUES(?,?,?)", (fieldValues[0], str(fieldValues[1]), fieldValues[2])) #THE MAGIC LINE
-
-	localconn.commit()
+	teamList = []
 	myRequest = (baseURL + 'districts/2017')
 	response = requests.get(myRequest, headers=header)
 	jsonified = response.json()
@@ -237,18 +227,15 @@ def cdr():
 		response = requests.get(myRequest, headers=header)
 		json2 = response.json()
 		for i in json2:
-			cursor.execute("insert into TEAMS VALUES(?,?,?)", (i['team_key'], i['point_total'], district['key']))
-
+			teamList.append((i['team_key'], i['point_total'], district['key']))
+	teamList.sort(key=lambda x: x[1])
+	teamList = reversed(teamList)
 	hold=1
 	finalOut="<table class=\"center\" style=\"width:auto;\"><tr><th>Rank</th><th>Team No.</th><th>No. Pts.</th><th>Dist. Code</th></tr>\n"
-#t= cursor.execute("SELECT * FROM TEAMS WHERE TEAMNO = ? ORDER BY RANKPTS DESC;",(teamKey,))
-	t = cursor.execute("SELECT * FROM TEAMS ORDER BY RANKPTS DESC;")
-	for i in t:
+	for i in teamList:
 		finalOut+="<tr><td>" + str(hold) + "</td><td>" + str(i[0]).upper() + "</td><td>" + str(i[1]) + "</td><td>" + str(i[2]).upper() + "</td></tr>"
 		hold+=1
 	finalOut+="</table>"
-	localconn.commit()
-	localconn.close()
 	return render_template("base.html", bodyhtml=finalOut)
 
 @app.errorhandler(404)
