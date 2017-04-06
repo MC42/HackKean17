@@ -5,17 +5,15 @@ import sys
 import datetime, time
 import os.path, locale
 
-#t = []
-#t.append(("bla",453))
-
 #Keep track of how many requests are made.
 global tbaRequests
 tbaRequests = 0
 with open(("tbaRequests.txt"), "r") as f:
 	tbaRequests = int(f.read())
 
-#Set current year for thing.
-year = str(datetime.datetime.today().year)
+#Set current year.
+#year = str(datetime.datetime.today().year)
+year=  "2017"
 #Set how wide the table is, equal to bestWorst*2 + 1 (team)
 bestWorst = 4
 
@@ -64,7 +62,7 @@ def getTeamMatchesAtEvent(i, key):
 	eventMatches = []
 
 	for match in events:
-		eventMatches.append(matchLogic(match, i, key))
+		eventMatches.extend(matchLogic(match, i, key))
 	return eventMatches
 
 def tbaIncrement():
@@ -94,6 +92,7 @@ def getEvent(teams, eventCode):
 
 	#Generates the data for each team at the event.
 	for i in teams:	
+		print(str(i))
 		tbaIncrement()
 		myRequest = (baseURL + 'team/frc'+ str(i) + '/'+ year + '/events')
 		response = requests.get(myRequest, headers=header)
@@ -101,15 +100,17 @@ def getEvent(teams, eventCode):
 		teamMatches = []
 		for thing in jsonified:
 			teamMatches.extend(getTeamMatchesAtEvent(i, str(thing['key'])))
-		while [] in teamMatches:	#Strips out empty / broken matches.
-			teamMatches.remove([])
+		teamMatches = [x for x in teamMatches if x]
+
+		for t in teamMatches:
+			print(t)
 		if teamMatches != []:		#If they're not empty.
 			teamMatches.sort(key=lambda x: x[0][1])
 		finalOut+="<tr><td><a href=\"" + tbaTeam(i) + "\">" + str(i) + "</td>"
 		for gMatch in teamMatches[-bestWorst:]:
-			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0][0]) + "\">" + gMatch[0][0] + "</td>")
+			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0]) + "\">" + gMatch[0] + "</td>")
 		for badMatch in teamMatches[:bestWorst]:
-			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0][0]) + "\">" + badMatch[0][0] + "</td>")
+			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0]) + "\">" + badMatch[0] + "</td>")
 		if (len(teamMatches) == 0):
 			finalOut+=("<td colspan="+  str(bestWorst*2)+ ">" + "No matches played yet, check back later." +"</td>")
 		finalOut+=("</tr>")
@@ -151,10 +152,10 @@ def frontPage():
 	return finalOut
 
 def file_len(fname):
-    with open(fname) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
+	with open(fname) as f:
+		for i, l in enumerate(f):
+			pass
+	return i + 1
 
 def savePage():
 	print("Started at "+  str(datetime.datetime.now()))
@@ -188,33 +189,33 @@ app = Flask(__name__)
 
 @app.route('/')
 def getEvents():
-    return render_template("base.html", bodyhtml = frontPage())
+	return render_template("base.html", bodyhtml = frontPage())
 
 #Event is LIVE
 @app.route('/event/<event>')
 def scoutatevent(event):
-    holder = render_template("base.html", bodyhtml =getEvent(getTeamsAtEvent(event),event))
-    with open(("./export/" + event + ".html"), "w+") as f:
+	holder = render_template("base.html", bodyhtml =getEvent(getTeamsAtEvent(event),event))
+	with open(("./export/" + event + ".html"), "w+") as f:
 		f.write(holder)
-    print("Updating " + event.upper() + " via non-static view.")
-    return holder
+	print("Updating " + event.upper() + " via non-static view.")
+	return holder
 
 #Events is STATIC
 @app.route('/events/<event>')
 def scoutatevents(event):
-    with open(("./export/" + event + ".html"), "r") as f:
-    	return f.read()
+	with open(("./export/" + event + ".html"), "r") as f:
+		return f.read()
 
 #Stats Page
 @app.route('/stats')
 def simplestats():
-    return render_template("base.html", bodyhtml=statsTest())
+	return render_template("base.html", bodyhtml=statsTest())
 
 #SAVE EVERYTHING
 @app.route('/admin/save/', methods=['POST'])
 def saveEvents():
-    savePage()
-    return ''
+	savePage()
+	return ''
 
 @app.route('/cdr/')
 def cdr():
@@ -240,11 +241,11 @@ def cdr():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+	return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def page_not_found(e):
-    return render_template('500.html'), 500
+	return render_template('500.html'), 500
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080, debug=True, threaded=True)
+	app.run(host='0.0.0.0', port=8080, debug=True, threaded=True)
