@@ -26,10 +26,10 @@ def matchLogic(match, team, key):
 	if match['score_breakdown']:
 		matchSeries = match['key']
 		if team in match['alliances']['red']['teams']:
-			redScoreNoFouls = (match['score_breakdown']['red']['totalPoints'] - match['score_breakdown']['red']['foulPoints'] )
+			redScoreNoFouls = (match['score_breakdown']['red']['totalPoints'])# - match['score_breakdown']['red']['foulPoints'] )
 			matchTest.append((matchSeries, redScoreNoFouls))
 		if team in match['alliances']['blue']['teams']:
-			blueScoreNoFouls = (match['score_breakdown']['blue']['totalPoints'] - match['score_breakdown']['blue']['foulPoints'] )
+			blueScoreNoFouls = (match['score_breakdown']['blue']['totalPoints'])	# - match['score_breakdown']['blue']['foulPoints'] )
 			matchTest.append((matchSeries, blueScoreNoFouls))
 	return matchTest
 			
@@ -101,16 +101,15 @@ def getEvent(teams, eventCode):
 		for thing in jsonified:
 			teamMatches.extend(getTeamMatchesAtEvent(i, str(thing['key'])))
 		teamMatches = [x for x in teamMatches if x]
-
+		if teamMatches != []:		#If they're not empty.
+			teamMatches.sort(key=lambda x: x[1])
 		for t in teamMatches:
 			print(t)
-		if teamMatches != []:		#If they're not empty.
-			teamMatches.sort(key=lambda x: x[0][1])
 		finalOut+="<tr><td><a href=\"" + tbaTeam(i) + "\">" + str(i) + "</td>"
-		for gMatch in teamMatches[-bestWorst:]:
-			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0]) + "\">" + gMatch[0] + "</td>")
-		for badMatch in teamMatches[:bestWorst]:
-			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0]) + "\">" + badMatch[0] + "</td>")
+		for gMatch in reversed(teamMatches[-bestWorst:]):
+			finalOut+=("<td><a href=\""  + tbaMatch(gMatch[0]) + "\" title=\""+ str(gMatch[1]) + "\">" + gMatch[0] + "</td>")
+		for badMatch in reversed(teamMatches[:bestWorst]):
+			finalOut+=("<td><a href=\""  + tbaMatch(badMatch[0]) + "\" title=\""+ str(gMatch[1]) + "\">" + badMatch[0] + "</td>")
 		if (len(teamMatches) == 0):
 			finalOut+=("<td colspan="+  str(bestWorst*2)+ ">" + "No matches played yet, check back later." +"</td>")
 		finalOut+=("</tr>")
