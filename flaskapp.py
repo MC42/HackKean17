@@ -182,6 +182,7 @@ def statsTest():
 	finalOut+="<form action=\"admin/save/\" method=\"post\"><button name=\"foo\" value=\"upvote\">Save Entire Site to Static</button></form>"
 
 	return finalOut
+
 	
 
 app = Flask(__name__)
